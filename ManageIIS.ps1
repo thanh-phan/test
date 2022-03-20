@@ -12,9 +12,14 @@ else{
 }
 Import-Module WebAdministration
 New-Item -Path "IIS:\AppPools" -Name $url -Type AppPool
+#Set-ItemProperty -Path "IIS:AppPools\$url" -name "processModel" -value $identity
 Set-ItemProperty -Path "IIS:AppPools\$url" -name "processModel"
+
 New-Item -Path "IIS:\Sites" -Name $url -Type Site -Bindings @{protocol="https";bindingInformation="*:443:$url"}
 Set-ItemProperty -Path "IIS:\Sites\$url" -name "physicalPath" -value $fullPath
 Set-ItemProperty -Path "IIS:\Sites\$url" -name "applicationPool" -value $url
+$theCert = Get-ChildItem -Path "Cert:\LocalMachine\My\" | Where-Object {$_.Subject -like "*WMSvc-SHA2*"}
+$binding = Get-WebBinding -Name $url
+$binding.AddSslCertificate($theCert.GetCertHashString(), "my")
 Add-Content "C:\Windows\System32\drivers\etc\hosts" "`n127.0.0.1 $url"
 Start-Website -Name $url
